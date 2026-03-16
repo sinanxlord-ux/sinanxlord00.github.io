@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Sinanxlord Fitness Hub</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#111;
+color:white;
+margin:0;
+text-align:center;
+transition:0.4s;
+}
+
+/* LIGHT MODE */
+
+.light{
+background:#f2f2f2;
+color:#111;
+}
+
+.light .navbar{
+background:#ddd;
+}
+
+.light .card{
+background:white;
+color:black;
+}
+
+.light .commentBox{
+background:#eee;
+color:black;
+}
+
+/* NAVBAR */
+
+.navbar{
+background:black;
+padding:15px;
+}
+
+.navbar button{
+padding:10px;
+margin:5px;
+border:none;
+background:#ff9800;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+/* SAYFALAR */
+
+.page{
+display:none;
+padding:20px;
+}
+
+.active{
+display:block;
+}
+
+/* KARTLAR */
+
+.card{
+background:#1e1e1e;
+padding:20px;
+margin:20px auto;
+border-radius:10px;
+max-width:900px;
+}
+
+.blog{
+font-size:18px;
+line-height:1.6;
+}
+
+.smallCard{
+max-width:500px;
+font-size:14px;
+}
+
+.commentBox{
+background:#333;
+padding:10px;
+margin:10px;
+border-radius:6px;
+}
+
+/* MÜZİK BUTONU */
+
+#musicBtn{
+position:fixed;
+bottom:20px;
+right:20px;
+width:60px;
+height:60px;
+border-radius:50%;
+background:#ff9800;
+border:none;
+font-size:20px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+
+<button onclick="openPage('home')">Ana Sayfa</button>
+<button onclick="openPage('fitness')">Fitness</button>
+<button onclick="openPage('games')">Oyun</button>
+<button onclick="openPage('adminLogin')">Admin</button>
+<button onclick="toggleTheme()">🌙 / ☀️</button>
+
+</div>
+
+<!-- ANA SAYFA -->
+
+<div id="home" class="page active">
+
+<div class="card smallCard">
+<h3>Hadis Köşesi</h3>
+<p id="hadisText"></p>
+</div>
+
+<div class="card smallCard">
+<h3>Motivasyon</h3>
+<p id="motivationText"></p>
+</div>
+
+<div class="card blog">
+<h2>Sporcuların Motivasyon Yazıları</h2>
+<p id="blogText"></p>
+</div>
+
+<div class="card smallCard">
+<h3>Yorum Yap</h3>
+
+<input id="isim" placeholder="Ad">
+<textarea id="yorum"></textarea>
+
+<button onclick="yorumEkle()">Gönder</button>
+
+<div id="yorumList"></div>
+
+</div>
+
+</div>
+
+<!-- FITNESS -->
+
+<div id="fitness" class="page">
+
+<div class="card">
+
+<h2>4 Günlük Profesyonel Fitness Programı</h2>
+
+<b>1.Gün Push</b><br>
+Bench Press 4x8<br>
+Incline Press 4x10<br>
+Chest Fly 3x12<br>
+Shoulder Press 4x10<br>
+Lateral Raise 3x15<br>
+Triceps Pushdown 4x12<br><br>
+
+<b>2.Gün Pull</b><br>
+Pull Up 4x8<br>
+Lat Pulldown 4x10<br>
+Barbell Row 4x10<br>
+Face Pull 3x12<br>
+Barbell Curl 4x10<br>
+Hammer Curl 3x12<br><br>
+
+<b>3.Gün Dinlenme</b><br><br>
+
+<b>4.Gün Legs</b><br>
+Squat 4x8<br>
+Leg Press 4x12<br>
+Leg Curl 3x12<br>
+Leg Extension 3x12<br>
+Calf Raise 4x15<br>
+
+</div>
+
+</div>
+
+<!-- OYUN -->
+
+<div id="games" class="page">
+
+<div class="card">
+
+<h2>Oyun İsimleri</h2>
+
+TC Sinan<br><br>
+sinanxlord
+
+</div>
+
+</div>
+
+<!-- ADMIN LOGIN -->
+
+<div id="adminLogin" class="page">
+
+<div class="card">
+
+<h2>Admin Giriş</h2>
+
+<input id="adminUser">
+<input id="adminPass" type="password">
+
+<button onclick="adminLogin()">Giriş</button>
+
+<p id="adminStatus"></p>
+
+</div>
+
+</div>
+
+<!-- ADMIN PANEL -->
+
+<div id="adminPanel" class="page">
+
+<div class="card">
+
+<h2>Admin Panel</h2>
+
+<h3>Blog Yazısı Ekle</h3>
+
+<textarea id="newBlog"></textarea>
+<button onclick="blogEkle()">Ekle</button>
+
+</div>
+
+</div>
+
+<audio id="bgMusic" loop>
+<source src="muzik.mp3" type="audio/mpeg">
+</audio>
+
+<button id="musicBtn" onclick="toggleMusic()">🎵</button>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+const firebaseConfig={
+apiKey:"AIzaSyCFp4oHYalBK0vOhqfIV3G4djh3hTsfDjs",
+authDomain:"sinanxlord-site.firebaseapp.com",
+projectId:"sinanxlord-site"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+let admin=false;
+
+/* SAYFA */
+
+window.openPage=function(page){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(page).classList.add("active");
+}
+
+/* ADMIN */
+
+window.adminLogin=function(){
+
+let u=document.getElementById("adminUser").value;
+let p=document.getElementById("adminPass").value;
+
+if(u==="admin" && p==="sinanasln890"){
+
+admin=true;
+openPage("adminPanel");
+
+}else{
+
+document.getElementById("adminStatus").innerText="Hatalı giriş";
+
+}
+
+}
+
+/* YORUM */
+
+window.yorumEkle=async function(){
+
+let isim=document.getElementById("isim").value;
+let yorum=document.getElementById("yorum").value;
+
+await addDoc(collection(db,"yorumlar"),{isim,yorum});
+
+}
+
+onSnapshot(collection(db,"yorumlar"),(snapshot)=>{
+
+let list=document.getElementById("yorumList");
+list.innerHTML="";
+
+snapshot.forEach((docu)=>{
+
+let data=docu.data();
+
+let sil="";
+
+if(admin){
+sil=`<button onclick="yorumSil('${docu.id}')">Sil</button>`;
+}
+
+list.innerHTML+=`
+<div class="commentBox">
+<b>${data.isim}</b><br>
+${data.yorum}<br>
+${sil}
+</div>
+`;
+
+});
+
+});
+
+window.yorumSil=async function(id){
+await deleteDoc(doc(db,"yorumlar",id));
+}
+
+/* BLOG */
+
+let bloglar=[
+
+"Cristiano Ronaldo disiplin ve çalışma ile zirveye ulaşmıştır.",
+"Michael Jordan başarısızlıkların onu güçlendirdiğini söylemiştir.",
+"Kobe Bryant Mamba Mentality ile tanınır.",
+"Muhammad Ali özgüveni ile tarihe geçmiştir.",
+"Arnold Schwarzenegger hayallerinin peşinden gitmiştir.",
+"Usain Bolt sınırları zorlamanın önemini anlatır.",
+"Serena Williams kararlılığın başarı getirdiğini söyler."
+
+];
+
+let bIndex=0;
+
+function blogSlider(){
+document.getElementById("blogText").innerText=bloglar[bIndex];
+bIndex=(bIndex+1)%bloglar.length;
+}
+
+setInterval(blogSlider,15000);
+blogSlider();
+
+/* HADIS */
+
+let hadisler=[
+"Kolaylaştırınız zorlaştırmayınız.",
+"Ameller niyetlere göredir.",
+"İnsanların en hayırlısı insanlara faydalı olandır.",
+"Merhamet etmeyene merhamet edilmez.",
+"Gülümsemen sadakadır.",
+"Sabır imanın yarısıdır.",
+"Temizlik imanın yarısıdır."
+];
+
+let h=0;
+
+function hadisSlider(){
+document.getElementById("hadisText").innerText=hadisler[h];
+h=(h+1)%hadisler.length;
+}
+
+setInterval(hadisSlider,15000);
+hadisSlider();
+
+/* MOTIVASYON */
+
+let motivasyon=[
+"Başarı disiplin ister",
+"Pes etmek yok",
+"Azim kazandırır",
+"Çalışmadan başarı olmaz",
+"Hayallerini takip et",
+"Gücünü göster",
+"Sınırlarını zorla"
+];
+
+let m=0;
+
+function motivasyonSlider(){
+document.getElementById("motivationText").innerText=motivasyon[m];
+m=(m+1)%motivasyon.length;
+}
+
+setInterval(motivasyonSlider,15000);
+motivasyonSlider();
+
+/* MUZIK */
+
+const music=document.getElementById("bgMusic");
+
+window.onload=function(){
+
+if(localStorage.getItem("theme")==="light"){
+document.body.classList.add("light");
+}
+
+music.play().catch(()=>{});
+
+}
+
+window.toggleMusic=function(){
+
+if(music.paused){
+music.play();
+}else{
+music.pause();
+}
+
+}
+
+/* DARK MODE */
+
+window.toggleTheme=function(){
+
+document.body.classList.toggle("light");
+
+if(document.body.classList.contains("light")){
+localStorage.setItem("theme","light");
+}else{
+localStorage.setItem("theme","dark");
+}
+
+}
+
+</script>
+
+</body>
+</html>
